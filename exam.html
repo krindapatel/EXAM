@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scoreboard</title>
+    <style>
+        /* styles.css */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #0000;
+        }
+
+        .form-container {
+            background-color: rgba(0, 195, 255, 0.998);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgb(0, 0, 0);
+            width: 300px;
+            margin: 20px auto;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #000000;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: rgb(211, 216, 112);
+            color: rgb(255, 4, 46);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4ea045;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        input[type="text"],
+        input[type="date"] {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Signup Form -->
+    <div id="signup-container" class="form-container">
+        <h2>Signup</h2>
+        <form id="signup-form">
+            <input type="text" id="signup-username" placeholder="Username" required>
+            <input type="password" id="signup-password" placeholder="Password" required>
+            <button type="submit">Sign Up</button>
+        </form>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-container" class="form-container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <input type="text" id="login-username" placeholder="Username" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <!-- Results Page (Visible after login) -->
+    <div id="result-container" class="form-container" style="display:none;">
+        <h2>Add Result</h2>
+        <form id="result-form">
+            <input type="text" id="student-name" placeholder="Student Name" required>
+            <input type="text" id="subject" placeholder="Subject" required>
+            <input type="number" id="score" placeholder="Score" required>
+            <input type="date" id="date" required>
+            <button type="submit">Add Result</button>
+        </form>
+
+        <h2>Scoreboard</h2>
+        <input type="text" id="search" placeholder="Search results...">
+        <button id="sort-asc">Sort by Score (Asc)</button>
+        <button id="sort-desc">Sort by Score (Desc)</button>
+        <ul id="scoreboard"></ul>
+    </div>
+
+    <script>
+      // Simulated Data Storage (Use localStorage to persist data)
+let users = JSON.parse(localStorage.getItem('users')) || [];
+let results = JSON.parse(localStorage.getItem('results')) || [];
+
+// DOM Elements
+const signupContainer = document.getElementById("signup-container");
+const loginContainer = document.getElementById("login-container");
+const resultContainer = document.getElementById("result-container");
+const scoreboard = document.getElementById("scoreboard");
+const searchInput = document.getElementById("search");
+const sortAscButton = document.getElementById("sort-asc");
+const sortDescButton = document.getElementById("sort-desc");
+
+// Signup functionality
+document.getElementById("signup-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const username = document.getElementById("signup-username").value;
+    const password = document.getElementById("signup-password").value;
+
+    if (username && password) {
+        const hashedPassword = hashPassword(password);
+        users.push({ username, password: hashedPassword });
+        localStorage.setItem('users', JSON.stringify(users));
+        alert("User signed up successfully!");
+        signupContainer.style.display = "none";
+        loginContainer.style.display = "block";
+    } else {
+        alert("Please provide both username and password.");
+    }
+});
+
+// Login functionality
+document.getElementById("login-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const username = document.getElementById("login-username").value;
+    const password = document.getElementById("login-password").value;
+
+    const user = users.find(user => user.username === username);
+
+    if (user && validatePassword(password, user.password)) {
+        alert("Login successful!");
+        loginContainer.style.display = "none";
+        resultContainer.style.display = "block";
+        localStorage.setItem("loggedInUser", username);
+        fetchResults(username);
+    } else {
+        alert("Invalid credentials.");
+    }
+});
+
+// Hashing function (for demo purposes)
+function hashPassword(password) {
+    return password.split('').reverse().join('');
+}
+
+// Validate password (hash match)
+function validatePassword(inputPassword, storedPassword) {
+    return hashPassword(inputPassword) === storedPassword;
+}
+
+// Add result for logged-in user
+document.getElementById("result-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const studentName = document.getElementById("student-name").value;
+    const subject = document.getElementById("subject").value;
+    const score = document.getElementById("score").value;
+    const date = document.getElementById("date").value;
+
+    const loggedInUser = localStorage.getItem("loggedInUser");
+
+    if (studentName && subject && score && date) {
+        const result = {
+            username: loggedInUser,
+            studentName,
+            subject,
+            score: parseInt(score),
+            date
+        };
+        results.push(result);
+        localStorage.setItem('results', JSON.stringify(results));
+        displayResults(loggedInUser);
+        clearForm();
+    } else {
+        alert("Please fill out all fields.");
+    }
+});
+
+// Display results
+function displayResults(username) {
+    scoreboard.innerHTML = '';
+    const userResults = results.filter(result => result.username === username);
+    userResults.forEach(result => {
+        const li = document.createElement("li");
+        li.textContent = `${result.studentName} - ${result.subject} - ${result.score} - ${result.date}`;
+        scoreboard.appendChild(li);
+    });
+}
+
+// Clear form after adding result
+function clearForm() {
+    document.getElementById("student-name").value = '';
+    document.getElementById("subject").value = '';
+    document.getElementById("score").value = '';
+    document.getElementById("date").value = '';
+}
+
+// Fetch results for logged-in user
+function fetchResults(username) {
+    const userResults = results.filter(result => result.username === username);
+    userResults.forEach(result => {
+        const li = document.createElement("li");
+        li.textContent = `${result.studentName} - ${result.subject} - ${result.score} - ${result.date}`;
+        scoreboard.appendChild(li);
+    });
+}
+
+// Sorting results
+sortAscButton.addEventListener("click", () => sortResults("asc"));
+sortDescButton.addEventListener("click", () => sortResults("desc"));
+
+// Sorting logic
+function sortResults(order) {
+    const loggedInUser = localStorage.getItem("loggedInUser");
+    const userResults = results.filter(result => result.username === loggedInUser);
+
+    userResults.sort((a, b) => order === "asc" ? a.score - b.score : b.score - a.score);
+
+    displayResults(loggedInUser);
+}
+
+// Search results
+searchInput.addEventListener("input", function () {
+    const query = searchInput.value.toLowerCase();
+    const loggedInUser = localStorage.getItem("loggedInUser");
+    const filteredResults = results.filter(result =>
+        result.username === loggedInUser &&
+        (result.studentName.toLowerCase().includes(query) || result.subject.toLowerCase().includes(query))
+    );
+
+    displayFilteredResults(filteredResults);
+});
+
+// Display filtered results
+function displayFilteredResults(filteredResults) {
+    scoreboard.innerHTML = '';
+    filteredResults.forEach(result => {
+        const li = document.createElement("li");
+        li.textContent = `${result.studentName} - ${result.subject} - ${result.score} - ${result.date}`;
+        scoreboard.appendChild(li);
+    });
+}
+// Display results in a more detailed way with better formatting
+function displayResults(username) {
+    scoreboard.innerHTML = '';  // Clear existing scoreboard
+    const userResults = results.filter(result => result.username === username);
+
+    userResults.forEach(result => {
+        const li = document.createElement("li");
+        li.style.border = "1px solid #ddd";
+        li.style.padding = "10px";
+        li.style.marginBottom = "5px";
+        li.style.borderRadius = "5px";
+        li.style.backgroundColor = "#f9f9f9";
+
+        const studentName = document.createElement("div");
+        studentName.textContent = `Student: ${result.studentName}`;
+        studentName.style.fontWeight = "bold";
+        
+        const subject = document.createElement("div");
+        subject.textContent = `Subject: ${result.subject}`;
+        
+        const score = document.createElement("div");
+        score.textContent = `Score: ${result.score}`;
+        score.style.color = result.score >= 50 ? "green" : "red";  // Color code based on score
+        
+        const date = document.createElement("div");
+        date.textContent = `Date: ${result.date}`;
+        
+        // Append each detail into the li
+        li.appendChild(studentName);
+        li.appendChild(subject);
+        li.appendChild(score);
+        li.appendChild(date);
+
+        // Append the li to the scoreboard
+        scoreboard.appendChild(li);
+    });
+}
+
+    </script>
+</body>
+
+</html>
